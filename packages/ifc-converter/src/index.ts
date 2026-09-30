@@ -30,6 +30,18 @@ export type {
   IfcConversionSimplificationOptions,
   IfcConversionSimplificationStats,
 } from './cleanup'
+export {
+  type ConvertPascalToIfcOptions,
+  type ConvertPascalToIfcResult,
+  convertPascalToIfc,
+  type IfcExportAssignment,
+  type IfcExportLoss,
+  ifcGuid,
+  ifcPlanToPascal,
+  type PascalIfcExportScene,
+  type PlanPoint,
+  pascalPlanToIfc,
+} from './pascal-to-ifc'
 
 export type PascalNode = AnyNode
 

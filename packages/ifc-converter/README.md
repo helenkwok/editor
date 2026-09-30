@@ -1,8 +1,13 @@
 # @pascal-app/ifc-converter
 
-Pure conversion logic for IFC → Pascal scene graphs. Takes a `Uint8Array` of
-IFC bytes, returns `{ nodes, rootNodeIds, stats }` shaped against
-`@pascal-app/core` schemas.
+Pure conversion logic for IFC ↔ Pascal scene graphs. `convertIfcToPascal`
+takes a `Uint8Array` of IFC bytes and returns `{ nodes, rootNodeIds }` shaped
+against `@pascal-app/core` schemas. `convertPascalToIfc` writes a bounded
+IFC4 subset (site, building, storey, walls, doors, windows, spaces) back out
+as STEP text. Plan mapping matches current main: IFC `(X, Y)` is Pascal
+`(x, z) = (X, -Y)`. Each level is its own storey at that level's elevation.
+Wall and space placements are in the storey frame, so the elevation is
+written once.
 
 No DOM, no React. The UI lives in `apps/ifc-converter`.
 
