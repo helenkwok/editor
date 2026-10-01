@@ -14,8 +14,8 @@ const originalGetLineIDsWithType = WebIFC.IfcAPI.prototype.GetLineIDsWithType
 const originalGetLine = WebIFC.IfcAPI.prototype.GetLine
 
 function assertUniqueFills(graph: PascalSceneGraph) {
-  const fills = Object.values(graph.nodes).filter(
-    (node) => node.type === 'door' || node.type === 'window',
+  const fills = Object.values(graph.nodes).filter((node) =>
+    fillIds.includes(Number(node.metadata?.expressID)),
   )
   expect(
     fills.map((node) => node.metadata?.expressID).sort((a, b) => Number(a) - Number(b)),
@@ -93,6 +93,12 @@ describe('IFC opening emission', () => {
           ...args
         ) {
           const line = originalGetLine.call(this, modelID, expressID, ...args)
+          if (kind === 'window' && expressID === 2381) {
+            return {
+              ...line,
+              RelatingBuildingElement: { ...line.RelatingBuildingElement, value: 40 },
+            }
+          }
           if (expressID !== 2451) return line
           return {
             ...line,
@@ -106,8 +112,8 @@ describe('IFC opening emission', () => {
       })
       assertUniqueFills(graph)
       const fill = Object.values(graph.nodes).find((node) => node.metadata?.expressID === fillId)
-      expect(fill?.type).toBe(kind)
-      expect(fill?.metadata?.hostWallExpressID).toBe(268)
+      expect(fill?.type).toBe(kind === 'door' ? 'imported-mesh' : 'window')
+      expect(fill?.metadata?.hostWallExpressID).toBe(kind === 'door' ? 268 : 40)
     })
   }
 

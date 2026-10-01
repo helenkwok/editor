@@ -87,6 +87,7 @@ const SIDEBAR_TABS: (SidebarTab & { component: React.ComponentType })[] = [
 interface SceneLoaderProps {
   initialScene: SceneGraph
   meta: SceneMeta
+  onLocalSave?: (meta: SceneMeta) => void
 }
 
 interface LiveSceneEvent {
@@ -108,7 +109,7 @@ function isLightPreviewQuery(searchParams: URLSearchParams): boolean {
   return disable.split(',').some((p) => p.trim() === 'postFx')
 }
 
-export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
+export function SceneLoader({ initialScene, meta, onLocalSave }: SceneLoaderProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const versionRef = useRef(meta.version)
@@ -188,11 +189,12 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
         versionRef.current = next.version
         serverNodeCountRef.current = next.nodeCount
         setSaveError(null)
+        onLocalSave?.(next)
       } catch (error) {
         setSaveError(error instanceof Error ? error.message : 'Save failed')
       }
     },
-    [meta.id, meta.name],
+    [meta.id, meta.name, onLocalSave],
   )
 
   useEffect(() => {

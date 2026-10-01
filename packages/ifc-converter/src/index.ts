@@ -505,6 +505,38 @@ function getBodyExtrusionData(ifcApi: WebIFC.IfcAPI, modelID: number, element: a
   return result
 }
 
+function hasBooleanBody(ifcApi: WebIFC.IfcAPI, modelID: number, element: any): boolean {
+  const visited = new Set<number>()
+  const hasBooleanItem = (expressId: number): boolean => {
+    if (visited.has(expressId)) return false
+    visited.add(expressId)
+    const item = ifcApi.GetLine(modelID, expressId)
+    if (item.type === WebIFC.IFCBOOLEANCLIPPINGRESULT || item.type === WebIFC.IFCBOOLEANRESULT) {
+      return true
+    }
+    if (!item.MappingSource?.value) return false
+    const source = ifcApi.GetLine(modelID, item.MappingSource.value)
+    if (!source.MappedRepresentation?.value) return false
+    const mapped = ifcApi.GetLine(modelID, source.MappedRepresentation.value)
+    return mapped.Items?.some((ref: { value: number }) => hasBooleanItem(ref.value)) ?? false
+  }
+
+  try {
+    if (!element.Representation?.value) return false
+    const product = ifcApi.GetLine(modelID, element.Representation.value)
+    for (const reference of product.Representations ?? []) {
+      const representation = ifcApi.GetLine(modelID, reference.value)
+      if (representation.RepresentationIdentifier?.value !== 'Body') continue
+      if (representation.Items?.some((ref: { value: number }) => hasBooleanItem(ref.value))) {
+        return true
+      }
+    }
+  } catch {
+    /* keep native geometry when the representation cannot be inspected */
+  }
+  return false
+}
+
 function findExtrusionPosition(ifcApi: WebIFC.IfcAPI, modelID: number, item: any): Mat4 | null {
   let current = item
   for (let guard = 0; guard < 10; guard++) {
@@ -1277,6 +1309,19 @@ export async function convertIfcToPascal(
     }
   }
 
+  const fillHostByExpressId = new Map<
+    number,
+    { hostWallExpressID: number; openingExpressID: number }
+  >()
+  for (const [hostWallExpressID, openingIds] of wallToOpenings) {
+    for (const openingExpressID of openingIds) {
+      const fillId = openingToFill.get(openingExpressID)
+      if (fillId && !fillHostByExpressId.has(fillId)) {
+        fillHostByExpressId.set(fillId, { hostWallExpressID, openingExpressID })
+      }
+    }
+  }
+
   // Collect all door and window expressIDs for type checking
   const doorExpressIds = new Set<number>()
   const windowExpressIds = new Set<number>()
@@ -1298,6 +1343,15 @@ export async function convertIfcToPascal(
       if (expressIdToNodeId.has(wallExpressID)) continue
 
       const wall = ifcApi.GetLine(modelID, wallExpressID)
+
+      // WallNode has one scalar height; unwrapping a clipped body to its
+      // extrusion discards roof trims and recreates the uncut rectangle.
+      if (
+        hasBooleanBody(ifcApi, modelID, wall) &&
+        importedMeshPrimitivesFor(wallExpressID).length > 0
+      ) {
+        continue
+      }
 
       const nodeId = generateId('wall')
       expressIdToNodeId.set(wallExpressID, nodeId)
@@ -1698,6 +1752,9 @@ export async function convertIfcToPascal(
 
   for (const fillId of [...doorExpressIds, ...windowExpressIds]) {
     if (expressIdToNodeId.has(fillId)) continue
+    // An explicit host that could not become a native wall must retain its
+    // fill geometry, rather than snap the fill onto a nearby native wall.
+    if (fillHostByExpressId.has(fillId)) continue
     try {
       const element = ifcApi.GetLine(modelID, fillId)
       const isDoor = doorExpressIds.has(fillId)
@@ -2305,6 +2362,7 @@ export async function convertIfcToPascal(
           globalId: element.GlobalId?.value,
           predefinedType: element.PredefinedType?.value,
           objectType: element.ObjectType?.value,
+          ...fillHostByExpressId.get(expressId),
         }),
       })
       expressIdToNodeId.set(expressId, nodeId)

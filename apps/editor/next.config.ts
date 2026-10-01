@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  serverExternalPackages: ['web-ifc'],
   // MCP / package metadata returns `/editor/<id>` (hosted route). This open-source
   // app serves saved scenes at `/scene/<id>` — redirect so links and bookmarks work.
   async redirects() {

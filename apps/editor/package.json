@@ -17,6 +17,7 @@
     "@number-flow/react": "^0.6.0",
     "@pascal-app/core": "*",
     "@pascal-app/editor": "*",
+    "@pascal-app/ifc-converter": "*",
     "@pascal-app/mcp": "*",
     "@pascal-app/nodes": "*",
     "@pascal-app/plugin-bones": "github:pascalorg/plugin-bones#5679260261ee1c733656ff6dfb99e30bb24b58a7",
@@ -42,6 +43,7 @@
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",
     "three": "^0.186.0",
+    "web-ifc": "^0.0.77",
     "zod": ">=4.5.4 <4.6"
   },
   "devDependencies": {
